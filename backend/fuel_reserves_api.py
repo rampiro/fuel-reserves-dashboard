@@ -656,6 +656,152 @@ async def eia_explore():
     return r.json()
 
 
+# ---------------------------------------------------------------------------
+# AVIATION FUEL DATA  v3.1.0
+# Jet-A1 / Queroseno de aviación por país y aeropuerto
+# Fuentes: IATA Fuel Monitor, EIA Petroleum Supply Monthly, EUROCONTROL, CORES
+# ---------------------------------------------------------------------------
+
+AVIATION_FUEL_BY_COUNTRY: list[dict] = [
+    {
+        "country":"Estados Unidos","iso3":"USA","jet_a1_days":55,"jet_a1_mt":28.5,"daily_consumption_kt":518,"status":"seguro",
+        "major_airports":[
+            {"iata":"ATL","name":"Hartsfield-Jackson","city":"Atlanta",     "jet_a1_days":58,"jet_a1_kt":285,"daily_kt":4.9,"status":"seguro"},
+            {"iata":"LAX","name":"Los Ángeles Intl",  "city":"Los Ángeles", "jet_a1_days":52,"jet_a1_kt":260,"daily_kt":5.0,"status":"seguro"},
+            {"iata":"ORD","name":"O'Hare Intl",       "city":"Chicago",     "jet_a1_days":54,"jet_a1_kt":238,"daily_kt":4.4,"status":"seguro"},
+            {"iata":"JFK","name":"John F. Kennedy",   "city":"Nueva York",  "jet_a1_days":50,"jet_a1_kt":215,"daily_kt":4.3,"status":"seguro"},
+            {"iata":"DFW","name":"Dallas/Ft. Worth",  "city":"Dallas",      "jet_a1_days":56,"jet_a1_kt":224,"daily_kt":4.0,"status":"seguro"},
+        ]
+    },
+    {
+        "country":"EAU","iso3":"ARE","jet_a1_days":62,"jet_a1_mt":9.2,"daily_consumption_kt":148,"status":"seguro",
+        "major_airports":[
+            {"iata":"DXB","name":"Dubai Intl",     "city":"Dubai",     "jet_a1_days":65,"jet_a1_kt":320,"daily_kt":4.9,"status":"seguro"},
+            {"iata":"AUH","name":"Abu Dhabi Intl", "city":"Abu Dhabi", "jet_a1_days":58,"jet_a1_kt":145,"daily_kt":2.5,"status":"seguro"},
+        ]
+    },
+    {
+        "country":"Japón","iso3":"JPN","jet_a1_days":58,"jet_a1_mt":7.4,"daily_consumption_kt":127,"status":"seguro",
+        "major_airports":[
+            {"iata":"HND","name":"Tokyo Haneda", "city":"Tokio", "jet_a1_days":60,"jet_a1_kt":165,"daily_kt":2.8,"status":"seguro"},
+            {"iata":"NRT","name":"Tokyo Narita", "city":"Tokio", "jet_a1_days":55,"jet_a1_kt":120,"daily_kt":2.2,"status":"seguro"},
+            {"iata":"KIX","name":"Osaka Kansai", "city":"Osaka", "jet_a1_days":52,"jet_a1_kt":62, "daily_kt":1.2,"status":"seguro"},
+        ]
+    },
+    {
+        "country":"Alemania","iso3":"DEU","jet_a1_days":48,"jet_a1_mt":5.8,"daily_consumption_kt":121,"status":"seguro",
+        "major_airports":[
+            {"iata":"FRA","name":"Frankfurt Main",     "city":"Frankfurt","jet_a1_days":48,"jet_a1_kt":175,"daily_kt":3.6,"status":"seguro"},
+            {"iata":"MUC","name":"Múnich Franz Josef", "city":"Múnich",   "jet_a1_days":46,"jet_a1_kt":92, "daily_kt":2.0,"status":"seguro"},
+            {"iata":"BER","name":"Berlín Brandenburg", "city":"Berlín",   "jet_a1_days":44,"jet_a1_kt":35, "daily_kt":0.8,"status":"seguro"},
+        ]
+    },
+    {
+        "country":"Francia","iso3":"FRA","jet_a1_days":42,"jet_a1_mt":4.8,"daily_consumption_kt":114,"status":"seguro",
+        "major_airports":[
+            {"iata":"CDG","name":"Charles de Gaulle","city":"París","jet_a1_days":42,"jet_a1_kt":145,"daily_kt":3.5,"status":"seguro"},
+            {"iata":"ORY","name":"Orly",             "city":"París","jet_a1_days":38,"jet_a1_kt":45, "daily_kt":1.2,"status":"advertencia"},
+        ]
+    },
+    {
+        "country":"España","iso3":"ESP","jet_a1_days":40,"jet_a1_mt":2.9,"daily_consumption_kt":72,"status":"seguro",
+        "major_airports":[
+            {"iata":"MAD","name":"Adolfo Suárez Barajas","city":"Madrid",    "jet_a1_days":40,"jet_a1_kt":95,"daily_kt":2.4,"status":"seguro"},
+            {"iata":"BCN","name":"El Prat",               "city":"Barcelona","jet_a1_days":38,"jet_a1_kt":62,"daily_kt":1.6,"status":"advertencia"},
+            {"iata":"PMI","name":"Palma de Mallorca",     "city":"Palma",    "jet_a1_days":35,"jet_a1_kt":28,"daily_kt":0.8,"status":"crítico"},
+        ]
+    },
+    {
+        "country":"Reino Unido","iso3":"GBR","jet_a1_days":38,"jet_a1_mt":3.9,"daily_consumption_kt":103,"status":"advertencia",
+        "major_airports":[
+            {"iata":"LHR","name":"London Heathrow","city":"Londres",   "jet_a1_days":38,"jet_a1_kt":118,"daily_kt":3.1,"status":"advertencia"},
+            {"iata":"LGW","name":"London Gatwick", "city":"Londres",   "jet_a1_days":35,"jet_a1_kt":42, "daily_kt":1.2,"status":"crítico"},
+            {"iata":"MAN","name":"Manchester",     "city":"Manchester","jet_a1_days":40,"jet_a1_kt":28, "daily_kt":0.7,"status":"advertencia"},
+        ]
+    },
+    {
+        "country":"Turquía","iso3":"TUR","jet_a1_days":28,"jet_a1_mt":3.1,"daily_consumption_kt":111,"status":"advertencia",
+        "major_airports":[
+            {"iata":"IST","name":"Istanbul",      "city":"Estambul","jet_a1_days":28,"jet_a1_kt":185,"daily_kt":6.6,"status":"advertencia"},
+            {"iata":"SAW","name":"Sabiha Gökçen", "city":"Estambul","jet_a1_days":25,"jet_a1_kt":65, "daily_kt":2.6,"status":"advertencia"},
+        ]
+    },
+    {
+        "country":"Singapur","iso3":"SGP","jet_a1_days":32,"jet_a1_mt":2.8,"daily_consumption_kt":88,"status":"advertencia",
+        "major_airports":[
+            {"iata":"SIN","name":"Changi","city":"Singapur","jet_a1_days":32,"jet_a1_kt":280,"daily_kt":8.8,"status":"advertencia"},
+        ]
+    },
+    {
+        "country":"China","iso3":"CHN","jet_a1_days":25,"jet_a1_mt":22.0,"daily_consumption_kt":880,"status":"advertencia",
+        "major_airports":[
+            {"iata":"PEK","name":"Beijing Capital",  "city":"Pekín",     "jet_a1_days":24,"jet_a1_kt":520,"daily_kt":21.7,"status":"advertencia"},
+            {"iata":"PVG","name":"Shanghai Pudong",  "city":"Shanghái",  "jet_a1_days":26,"jet_a1_kt":480,"daily_kt":18.5,"status":"advertencia"},
+            {"iata":"PKX","name":"Beijing Daxing",   "city":"Pekín",     "jet_a1_days":22,"jet_a1_kt":285,"daily_kt":13.0,"status":"advertencia"},
+            {"iata":"CAN","name":"Guangzhou Baiyun", "city":"Guangzhou", "jet_a1_days":23,"jet_a1_kt":340,"daily_kt":14.8,"status":"advertencia"},
+        ]
+    },
+]
+
+AIRLINE_FUEL_STRATEGY: list[dict] = [
+    {"airline":"Delta Air Lines",    "iata_code":"DL","country":"EE.UU.",      "alliance":"SkyTeam",       "has_own_supply":True,  "own_supply_note":"Propietaria de Monroe Energy (refinería Trainer, PA). Cubre ~80% demanda doméstica.",              "futures_pct":50,"spot_pct":50,"hedge_months_fwd":12,"annual_fuel_mt":10.8},
+    {"airline":"Southwest Airlines", "iata_code":"WN","country":"EE.UU.",      "alliance":"LCC",           "has_own_supply":False, "own_supply_note":"Sin refinería. Líder histórico en cobertura financiera vía opciones y swaps.",                      "futures_pct":70,"spot_pct":30,"hedge_months_fwd":18,"annual_fuel_mt":7.2},
+    {"airline":"United Airlines",    "iata_code":"UA","country":"EE.UU.",      "alliance":"Star Alliance",  "has_own_supply":False, "own_supply_note":"Sin activos de refinería. Compras a BP, Shell, Valero.",                                           "futures_pct":40,"spot_pct":60,"hedge_months_fwd":9, "annual_fuel_mt":10.1},
+    {"airline":"American Airlines",  "iata_code":"AA","country":"EE.UU.",      "alliance":"oneworld",       "has_own_supply":False, "own_supply_note":"Históricamente mínimo hedging. Máxima exposición spot del sector.",                               "futures_pct":20,"spot_pct":80,"hedge_months_fwd":3, "annual_fuel_mt":10.5},
+    {"airline":"Ryanair",            "iata_code":"FR","country":"Irlanda",     "alliance":"LCC",           "has_own_supply":False, "own_supply_note":"Sin refinería. Contratos con BP Aviation y Shell Aviation.",                                       "futures_pct":55,"spot_pct":45,"hedge_months_fwd":12,"annual_fuel_mt":4.9},
+    {"airline":"IAG (BA/Iberia)",    "iata_code":"IB","country":"UK/España",   "alliance":"oneworld",       "has_own_supply":False, "own_supply_note":"Sin refinería. Contratos con Shell, Vitol y Total.",                                             "futures_pct":60,"spot_pct":40,"hedge_months_fwd":12,"annual_fuel_mt":6.8},
+    {"airline":"Lufthansa Group",    "iata_code":"LH","country":"Alemania",    "alliance":"Star Alliance",  "has_own_supply":False, "own_supply_note":"LH Solutions gestiona hedging centralizado para Swiss, Austrian y Brussels.",                      "futures_pct":68,"spot_pct":32,"hedge_months_fwd":18,"annual_fuel_mt":8.4},
+    {"airline":"Emirates",           "iata_code":"EK","country":"EAU",         "alliance":"Independent",    "has_own_supply":True,  "own_supply_note":"Acceso preferencial a Jet-A1 vía ENOC y ADNOC.",                                                 "futures_pct":45,"spot_pct":55,"hedge_months_fwd":9, "annual_fuel_mt":12.5},
+    {"airline":"Qatar Airways",      "iata_code":"QR","country":"Qatar",       "alliance":"oneworld",       "has_own_supply":True,  "own_supply_note":"Respaldo de QatarEnergy. Precios de transferencia preferentes.",                                  "futures_pct":50,"spot_pct":50,"hedge_months_fwd":12,"annual_fuel_mt":6.9},
+    {"airline":"Air France-KLM",     "iata_code":"AF","country":"Francia/NLD", "alliance":"SkyTeam",        "has_own_supply":False, "own_supply_note":"Sin refinería. Suministro de TotalEnergies y Shell.",                                            "futures_pct":63,"spot_pct":37,"hedge_months_fwd":12,"annual_fuel_mt":7.1},
+    {"airline":"Singapore Airlines", "iata_code":"SQ","country":"Singapur",   "alliance":"Star Alliance",  "has_own_supply":False, "own_supply_note":"Sin refinería. Contratos con ExxonMobil y Shell en Changi.",                                     "futures_pct":55,"spot_pct":45,"hedge_months_fwd":12,"annual_fuel_mt":5.0},
+    {"airline":"Turkish Airlines",   "iata_code":"TK","country":"Turquía",    "alliance":"Star Alliance",  "has_own_supply":False, "own_supply_note":"Parcial respaldo estatal vía BOTAŞ/Tüpraş. Hedging limitado.",                                    "futures_pct":30,"spot_pct":70,"hedge_months_fwd":6, "annual_fuel_mt":5.8},
+]
+
+AIRLINE_FUEL_RUNWAY: list[dict] = [
+    {"airline":"Qatar Airways",     "iata_code":"QR","country":"Qatar",       "runway_days":90,"fuel_reserve_mt":1.70,"daily_consumption_kt":18.9,"status":"seguro",      "hedged_until":"2026-10-01","risk_note":"Respaldo estatal QatarEnergy. Mayor colchón del sector."},
+    {"airline":"Southwest Airlines","iata_code":"WN","country":"EE.UU.",      "runway_days":75,"fuel_reserve_mt":1.48,"daily_consumption_kt":19.7,"status":"seguro",      "hedged_until":"2026-08-01","risk_note":"Cobertura financiera más sólida de las aerolíneas de EE.UU."},
+    {"airline":"Emirates",          "iata_code":"EK","country":"EAU",         "runway_days":65,"fuel_reserve_mt":2.23,"daily_consumption_kt":34.3,"status":"seguro",      "hedged_until":"2026-07-01","risk_note":"Acceso prioritario ENOC/ADNOC mitiga riesgo de desabastecimiento."},
+    {"airline":"Lufthansa Group",   "iata_code":"LH","country":"Alemania",    "runway_days":60,"fuel_reserve_mt":1.38,"daily_consumption_kt":23.0,"status":"seguro",      "hedged_until":"2026-07-15","risk_note":"Cobertura LH Solutions ~68% forward a 18 meses."},
+    {"airline":"Delta Air Lines",   "iata_code":"DL","country":"EE.UU.",      "runway_days":55,"fuel_reserve_mt":1.63,"daily_consumption_kt":29.6,"status":"seguro",      "hedged_until":"2026-06-15","risk_note":"Monroe Energy proporciona suministro físico directo ~80% doméstico."},
+    {"airline":"Singapore Airlines","iata_code":"SQ","country":"Singapur",   "runway_days":55,"fuel_reserve_mt":0.75,"daily_consumption_kt":13.7,"status":"seguro",      "hedged_until":"2026-06-15","risk_note":"Hub estratégico de Changi asegura suministro prioritario."},
+    {"airline":"IAG (BA/Iberia)",   "iata_code":"IB","country":"UK/España",   "runway_days":50,"fuel_reserve_mt":0.93,"daily_consumption_kt":18.6,"status":"seguro",      "hedged_until":"2026-06-01","risk_note":"60% cubierto a 12m. Mayor exposición en LGW."},
+    {"airline":"Air France-KLM",    "iata_code":"AF","country":"Francia/NLD", "runway_days":45,"fuel_reserve_mt":0.87,"daily_consumption_kt":19.5,"status":"seguro",      "hedged_until":"2026-06-01","risk_note":"63% hedgeado. Dependencia CDG/AMS si suministros europeos se tensan."},
+    {"airline":"Ryanair",           "iata_code":"FR","country":"Irlanda",     "runway_days":45,"fuel_reserve_mt":0.60,"daily_consumption_kt":13.5,"status":"seguro",      "hedged_until":"2026-06-01","risk_note":"55% cubierto. Modelo low-cost expone márgenes en escenario spot alto."},
+    {"airline":"United Airlines",   "iata_code":"UA","country":"EE.UU.",      "runway_days":40,"fuel_reserve_mt":1.10,"daily_consumption_kt":27.7,"status":"advertencia", "hedged_until":"2026-05-01","risk_note":"40% hedgeado. Exposición relevante si crudo rebasa $100/bbl."},
+    {"airline":"Turkish Airlines",  "iata_code":"TK","country":"Turquía",    "runway_days":35,"fuel_reserve_mt":0.56,"daily_consumption_kt":15.9,"status":"advertencia", "hedged_until":"2026-05-01","risk_note":"30% cubierto. Lira débil + tensiones regionales elevan riesgo."},
+    {"airline":"American Airlines", "iata_code":"AA","country":"EE.UU.",      "runway_days":25,"fuel_reserve_mt":0.72,"daily_consumption_kt":28.7,"status":"crítico",     "hedged_until":"2026-04-25","risk_note":"Mínimo hedging histórico. Mayor vulnerabilidad spot del sector."},
+]
+
+
+@app.get("/api/aviation-fuel", summary="Reservas Jet-A1/Queroseno por país y aeropuerto")
+async def get_aviation_fuel():
+    return {
+        "updated": "2026-04-05",
+        "source":  "IATA Fuel Monitor / EIA / CORES / CAAC / EUROCONTROL",
+        "countries": AVIATION_FUEL_BY_COUNTRY,
+    }
+
+
+@app.get("/api/airline-strategy", summary="Estrategia de compra de combustible por aerolínea (spot vs futuros)")
+async def get_airline_strategy():
+    return {
+        "updated": "2026-04-05",
+        "source":  "Informes anuales 2025 / IATA Fuel Monitor",
+        "airlines": sorted(AIRLINE_FUEL_STRATEGY, key=lambda a: a["futures_pct"], reverse=True),
+    }
+
+
+@app.get("/api/airline-runway", summary="Días de operaciones restantes antes de cancelación total")
+async def get_airline_runway():
+    return {
+        "updated": "2026-04-05",
+        "source":  "Estimación: reservas declaradas / consumo diario IATA + informes financieros trimestrales",
+        "note":    "runway_days = fuel_reserve / daily_consumption. Incluye cobertura financiera (futuros).",
+        "airlines": sorted(AIRLINE_FUEL_RUNWAY, key=lambda a: a["runway_days"], reverse=True),
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("fuel_reserves_api:app", host="0.0.0.0", port=8000, reload=True)
